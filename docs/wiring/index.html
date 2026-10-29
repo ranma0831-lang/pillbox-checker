@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>키트 서비스 설계실</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 한 열 작업 문서 — 위에서 조건 → 옵션 탭 → 선택 옵션의 서비스·배선 → 표준·질문 순서 */
+:root{
+  --bg:#f4f6f2; --surface:#ffffff; --fg:#18201b; --muted:#56615a; --line:#d3dad2;
+  --accent:#1d6a47; --accent-ink:#ffffff; --warn:#8a4a00; --warn-bg:#fff3e0; --ok-bg:#e6f2ea;
+  --f-body:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --f-mono:"IBM Plex Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111512; --surface:#1a201c; --fg:#e5ebe6; --muted:#a2aea5; --line:#2e3830;
+  --accent:#62c897; --accent-ink:#0d1a12; --warn:#ffb866; --warn-bg:#2d2213; --ok-bg:#16291e; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111512; --surface:#1a201c; --fg:#e5ebe6; --muted:#a2aea5; --line:#2e3830;
+  --accent:#62c897; --accent-ink:#0d1a12; --warn:#ffb866; --warn-bg:#2d2213; --ok-bg:#16291e; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 var(--f-body);word-break:keep-all}
+.wrap{max-width:1120px;margin:0 auto;padding-block:32px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+h1,h2,h3{text-wrap:balance;line-height:1.3;margin:0}
+h1{font-size:2rem} h2{font-size:1.4rem} h3{font-size:1.1rem}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 .8rem var(--f-mono);letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+.stack{display:grid;gap:14px;min-width:0}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.fact b{display:block;font-size:.85rem;color:var(--muted);font-weight:500}
+.tabs{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px}
+.tab{all:unset;box-sizing:border-box;cursor:pointer;background:var(--surface);border:2px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:4px;min-height:44px}
+.tab:hover{border-color:var(--muted)}
+.tab[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tab:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.tab .k{font:500 .78rem var(--f-mono);color:var(--muted)}
+.tab .n{font-weight:700;font-size:1.05rem}
+.tab .s{font-size:.9rem;color:var(--muted)}
+.pill{display:inline-block;font-size:.78rem;font-weight:500;padding:2px 8px;border-radius:99px;border:1px solid currentColor;width:max-content}
+.pill.ok{color:var(--accent);background:var(--ok-bg)} .pill.cond{color:var(--warn);background:var(--warn-bg)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+ul{margin:0;padding-left:1.2em} li{margin:2px 0}
+.note{background:var(--warn-bg);color:var(--fg);border-left:4px solid var(--warn);padding:10px 14px;border-radius:4px;max-width:none}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.92rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:500;color:var(--muted);background:var(--bg)}
+tr.cur td{background:var(--ok-bg)}
+code,.mono{font-family:var(--f-mono);font-size:.88em}
+.diagram{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fffdf7}
+.diagram svg{display:block;min-width:820px;width:100%;height:auto}
+.stepper{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button.b{font:inherit;font-size:.95rem;min-height:44px;min-width:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+button.b.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.b:disabled{opacity:.45;cursor:not-allowed}
+button.row{font:inherit;font-size:.85rem;min-height:32px;padding:0 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.caption{font-weight:500;min-height:3.3em;max-width:none}
+.swatch{display:inline-block;width:.9em;height:.9em;border-radius:2px;vertical-align:-1px;margin-right:4px;border:1px solid #0003}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:6px 16px;font-size:.92rem;padding:0;list-style:none}
+.badge{display:inline-grid;place-items:center;width:1.5em;height:1.5em;border-radius:50%;background:#2f3a33;color:#fff;font:500 .75rem var(--f-mono);margin-right:6px}
+@media (prefers-reduced-motion:no-preference){.tab,button{transition:border-color .15s,background .15s}}
+</style>
+
+<div class="wrap">
+  <header class="stack">
+    <span class="eyebrow">SZH-EK013 고급키트 · UNO 호환 R3 · 2026-10-29</span>
+    <h1>키트 서비스 설계실</h1>
+    <p>수업 자료(10/22 웹캠, 10/23 전자회로·ESP32)에 나온 부품만으로 만들 수 있는 대시보드 서비스 다섯 가지와 각각의 빵판 배선입니다. 배선 그림은 수업 실습실과 같은 방식으로 그렸습니다. UNO는 왼쪽, 빵판은 세로로 놓고, 1번 줄은 5V, 2번 줄은 GND로 나눠 쓰며, 선은 한 개씩 순서대로 꽂습니다.</p>
+    <p class="note"><strong>설계안입니다. 실물로 확인하지 않았습니다.</strong> P01 회로만 수업 배선표를 그대로 옮긴 것이고, 나머지 네 회로는 수업의 단품 배선(K02·K03·K05·K06·K07·K08·K09·K11·K13·K15)을 조합한 새 배치입니다. 연결하기 전에 USB를 분리하고, 실물에 적힌 핀 이름과 대조하세요.</p>
+  </header>
+
+  <section class="stack" aria-labelledby="h-facts">
+    <h2 id="h-facts">지금 확인된 조건</h2>
+    <div class="facts">
+      <div class="fact"><b>보드·통신</b>UNO 1대, 한 번에 회로 1개. USB 시리얼 115200, 한 줄 JSON 상태와 <code>요청번호 명령</code> 형식</div>
+      <div class="fact"><b>쓸 수 있는 부품</b>LED 3색, 버튼, 가변저항, CdS, DHT11, LM35, LCD I2C, 조이스틱, 키패드, 기울기 스위치, FND, 74HC595</div>
+      <div class="fact"><b>조건 확인 후 사용</b>수위 센서, 소리 모듈, RGB 모듈, 부저, 릴레이, RTC (실물 표시와 핀을 먼저 대조)</div>
+      <div class="fact"><b>지금은 제외</b>서보·스텝모터(외부 5V 없음), RFID(레벨 변환 필요), IR 수신·화염·도트매트릭스(모델 미확인)</div>
+      <div class="fact"><b>웹캠 (10/22)</b>C270 + YOLO는 PC의 Python에서 실행됩니다. UNO 대시보드와 합치려면 PC 프로그램 하나가 둘 다 맡아야 합니다</div>
+    </div>
+  </section>
+
+  <section class="stack" aria-labelledby="h-opts">
+    <h2 id="h-opts">서비스 옵션</h2>
+    <p>옵션을 고르면 아래에 서비스 설명과 배선도가 바뀝니다. 각 옵션은 대시보드 유형이 다릅니다. 지켜보기, 기준 넘음 알림, 시간 관리, 직접 조작, 돌봄 확인으로 나눴습니다. 포트폴리오용으로 F를 골랐습니다.</p>
+    <div class="tabs" role="tablist" aria-label="서비스 옵션" id="tabs"></div>
+  </section>
+
+  <section class="stack" id="panel" role="tabpanel" tabindex="-1" aria-labelledby="h-svc"></section>
+
+  <section class="stack" aria-labelledby="h-std">
+    <h2 id="h-std">어느 옵션이든 들어갈 표준 기준</h2>
+    <p>ISO 9241-110(대화 원칙)과 WCAG 2.2에서 이 대시보드에 직접 걸리는 항목만 골랐습니다. 화면을 만든 뒤 항목마다 직접 검사해 기록합니다. 검사하지 않은 항목은 충족으로 쓰지 않습니다.</p>
+    <div class="tablebox"><table>
+      <thead><tr><th>기준</th><th>이 대시보드에서의 의미</th><th>확인 방법</th></tr></thead>
+      <tbody>
+        <tr><td>ISO 9241-110 과업 적합성</td><td>첫 화면에 그 사람이 판단할 값 하나가 가장 크게 보임</td><td>사용자에게 3초 보여 주고 무엇을 해야 하는지 물어보기</td></tr>
+        <tr><td>ISO 9241-110 자기 설명성</td><td>원시값 0~1023에 "물리 단위 아님"과 구간 이름(어두움·보통) 표시</td><td>단위·구간 문구가 모든 값 옆에 있는지 점검</td></tr>
+        <tr><td>ISO 9241-110 사용자 기대 일치</td><td>버튼을 누르면 "보내는 중 → 보드 적용(ACK) → 응답 없음"을 구분</td><td>USB를 뽑은 채 명령을 보내 "적용 여부 미확인"이 뜨는지</td></tr>
+        <tr><td>ISO 9241-110 오류 내성</td><td>센서 <code>null</code>, 3초 이상 오래된 값, 연결 끊김을 0과 구별</td><td>DHT11 데이터선을 빼고 화면 확인</td></tr>
+        <tr><td>WCAG 1.4.1 색만으로 전달 금지</td><td>빨강·노랑·초록 상태에 글자와 아이콘을 함께 표시</td><td>흑백 화면 캡처로 상태를 읽을 수 있는지</td></tr>
+        <tr><td>WCAG 1.4.3 / 1.4.11 대비</td><td>본문 4.5:1, 그래프 선·버튼 테두리 3:1 이상</td><td>사용한 색 쌍의 대비 계산값 기록</td></tr>
+        <tr><td>WCAG 2.1.1 키보드 · 2.4.7 초점 표시</td><td>연결·명령·슬라이더를 Tab과 화살표로 조작, 초점 테두리가 보임</td><td>마우스 없이 연결부터 LED 켜기까지 수행</td></tr>
+        <tr><td>WCAG 2.4.11 초점 가려짐 방지 (2.2 신규)</td><td>고정 헤더·알림이 초점 받은 버튼을 덮지 않음</td><td>휴대폰 폭에서 Tab으로 끝까지 이동</td></tr>
+        <tr><td>WCAG 2.5.8 목표 크기 (2.2 신규)</td><td>모든 버튼 최소 24×24px (권장 44px)</td><td>개발자 도구로 버튼 크기 측정</td></tr>
+        <tr><td>WCAG 4.1.3 상태 메시지</td><td>연결 상태·ACK 결과를 <code>role="status"</code>로 알림</td><td>스크린리더(NVDA 등)로 명령 결과가 읽히는지</td></tr>
+        <tr><td>WCAG 2.2.2 일시정지</td><td>1초마다 바뀌는 그래프를 멈출 수 있음</td><td>멈춤 버튼으로 갱신이 멈추는지</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+/*DATA*/
+const OPTIONS = [
+{
+  id:'p01', key:'A · 지켜보기', name:'공부방 환경·조명 도우미', status:['ok','수업 P01 그대로'],
+  short:'밝기·온습도를 보고 LED를 자동/수동 제어',
+  who:'집에서 공부하는 나', situation:'어두워졌는지, 덥거나 습한지 확인하고 조명을 켠다.',
+  big:'밝기 원시값과 LED 상태 (자동/수동)',
+  more:['온도 °C, 습도 % (null 가능)','최근 60개 밝기 그래프 (브라우저 메모리)','연결 상태와 마지막 정상 수신 시각'],
+  cmds:['LED 0/1','AUTO 0/1','THRESH low high','STOP · STATUS · PING'],
+  why:'오늘 수업 회로이고 펌웨어·통신 규약·기존 uno-dashboard가 이미 있습니다. 화면 설계와 표준 검사에 시간을 가장 많이 쓸 수 있습니다.',
+  cost:'새 펌웨어 없음 · 선 21개 (암–수 7, 수–수 21 중)',
+  cautions:['수업 P01 배선표를 그대로 옮겼습니다. 이 회로만 수업 자료와 같은 구멍 번호입니다.'],
+  parts:[
+    {t:'res',n:'LED용 1kΩ',legs:['C4','C7']},
+    {t:'led',n:'빨강 LED',c:'#e0322b',legs:['E7','E8'],pins:['+ 긴 다리','− 짧은 다리']},
+    {t:'btn',n:'택트 스위치',legs:['E10','E12','F10','F12']},
+    {t:'pot',n:'10kΩ 가변저항',legs:['E14','E16','E18'],pins:['GND','신호','5V']},
+    {t:'cds',n:'조도 센서 CdS',legs:['E20','E22']},
+    {t:'res',n:'CdS용 10kΩ',legs:['C22','C24']},
+    {t:'mod',n:'DHT11 온습도',legs:['J14','J16','J18'],pins:['VCC +','GND −','DATA S']},
+    {t:'mod',n:'LCD1602 I2C',legs:['J20','J22','J24','J26'],pins:['GND','VCC','SDA','SCL']}
+  ],
+  wires:[
+    ['U:D8','A4','s','D8 출력 → 1kΩ → LED +'],
+    ['U:D2','A10','s','버튼 입력 (INPUT_PULLUP, 누르면 GND)'],
+    ['U:A0','A16','s','가변저항 가운데 다리 전압'],
+    ['U:A1','A22','s','CdS와 10kΩ 사이 전압'],
+    ['U:D4','F18','s','DHT11 데이터'],
+    ['U:A4','F24','s','LCD I2C SDA'],
+    ['U:A5','F26','s','LCD I2C SCL'],
+    ['U:5V','A1','p','5V를 1번 줄로 보냄'],
+    ['B1','A18','p','가변저항 5V'],
+    ['C1','A20','p','CdS 5V'],
+    ['D1','F14','p','DHT11 VCC'],
+    ['E1','F1','p','1번 줄 왼쪽·오른쪽 연결'],
+    ['G1','F22','p','LCD VCC'],
+    ['U:GND','F2','g','GND를 2번 줄로 보냄'],
+    ['G2','A8','g','LED − 쪽 GND'],
+    ['H2','J10','g','버튼 반대편 GND'],
+    ['I2','A14','g','가변저항 GND'],
+    ['J2','A2','g','2번 줄 오른쪽·왼쪽 연결'],
+    ['B2','A24','g','10kΩ 아래쪽 GND'],
+    ['C2','F16','g','DHT11 GND'],
+    ['D2','F20','g','LCD GND']
+  ]
+},
+{
+  id:'plant', key:'B · 기준 넘음 알림', name:'화분 지킴이', status:['cond','수위 센서 조건 확인'],
+  short:'물·햇빛·온습도를 보고 신호등으로 알림',
+  who:'교실이나 집에서 화분을 맡은 사람', situation:'물이 말랐는지, 햇빛이 부족한지 멀리서도 알아챈다.',
+  big:'물 상태 3단계 (마름·보통·충분)와 신호등 색',
+  more:['햇빛 원시값과 오늘 밝았던 시간 비율','온도·습도','마지막 물 준 시각 (사용자가 버튼으로 기록)'],
+  cmds:['SIGNAL 0~3','WATER_CAL dry wet (마른 값·젖은 값 저장)','STOP · STATUS · PING'],
+  why:'센서 3개 값을 "해야 할 일" 하나로 바꾸는 연습입니다. 원시값을 구간으로 보정하는 화면과 신호등 LED가 색 외 표시(WCAG 1.4.1)를 연습하기 좋습니다.',
+  cost:'새 펌웨어 필요 (P01 + K03 + K07 조합) · 선 19개',
+  cautions:['수위 센서는 금속 무늬만 물에 담그고 회로·USB는 물에서 떨어뜨립니다. 관찰할 때만 전원을 연결합니다.','수위 값은 cm가 아닙니다. 마른 값·젖은 값을 직접 재서 구간을 정합니다.'],
+  parts:[
+    {t:'res',n:'빨강용 1kΩ',legs:['C4','C7']},
+    {t:'led',n:'빨강 LED · 물 부족',c:'#e0322b',legs:['E7','E8'],pins:['+','−']},
+    {t:'res',n:'노랑용 1kΩ',legs:['C10','C13']},
+    {t:'led',n:'노랑 LED · 확인 필요',c:'#e8b400',legs:['E13','E14'],pins:['+','−']},
+    {t:'res',n:'초록용 1kΩ',legs:['C16','C19']},
+    {t:'led',n:'초록 LED · 정상',c:'#1f9d4c',legs:['E19','E20'],pins:['+','−']},
+    {t:'cds',n:'조도 센서 CdS',legs:['E22','E24']},
+    {t:'res',n:'CdS용 10kΩ',legs:['C24','C26']},
+    {t:'mod',n:'DHT11 온습도',legs:['J4','J6','J8'],pins:['VCC +','GND −','DATA S']},
+    {t:'mod',n:'수위 센서',legs:['J12','J14','J16'],pins:['VCC +','GND −','S']}
+  ],
+  wires:[
+    ['U:D8','A4','s','빨강 LED 신호'],
+    ['U:D9','A10','s','노랑 LED 신호'],
+    ['U:D10','A16','s','초록 LED 신호'],
+    ['U:A1','A24','s','CdS와 10kΩ 사이 전압'],
+    ['U:D4','F8','s','DHT11 데이터'],
+    ['U:A2','F16','s','수위 센서 S'],
+    ['U:5V','A1','p','5V를 1번 줄로 보냄'],
+    ['B1','A22','p','CdS 5V'],
+    ['E1','F1','p','1번 줄 왼쪽·오른쪽 연결'],
+    ['G1','F4','p','DHT11 VCC'],
+    ['H1','F12','p','수위 센서 VCC'],
+    ['U:GND','F2','g','GND를 2번 줄로 보냄'],
+    ['J2','A2','g','2번 줄 오른쪽·왼쪽 연결'],
+    ['B2','A8','g','빨강 LED −'],
+    ['C2','A14','g','노랑 LED −'],
+    ['D2','A20','g','초록 LED −'],
+    ['E2','A26','g','10kΩ 아래쪽 GND'],
+    ['G2','F6','g','DHT11 GND'],
+    ['H2','F14','g','수위 센서 GND']
+  ]
+},
+{
+  id:'noise', key:'C · 시간 관리', name:'집중 타이머·소음 신호등', status:['cond','소리 모듈 조건 확인'],
+  short:'25분 집중 타이머와 주변 소음 신호등',
+  who:'스터디룸이나 교실에서 함께 공부하는 사람들', situation:'지금 집중 시간인지, 소음이 기준을 넘었는지 서로 알 수 있게 한다.',
+  big:'남은 집중 시간과 현재 소음 단계',
+  more:['소음 상대값 그래프와 기준선 (dB 아님)','기준 넘은 횟수 (이번 세션)','LCD에 남은 시간 표시'],
+  cmds:['TIMER start 25 / TIMER stop','NOISE low high','SIGNAL 0~3','STOP · STATUS · PING'],
+  why:'시간이 흐르는 화면이라 WCAG 2.2.2(일시정지)와 4.1.3(상태 메시지)을 실제로 다루게 됩니다. 버튼으로 현장에서도, 웹에서도 같은 타이머를 조작하는 구조입니다.',
+  cost:'새 펌웨어 필요 (K03 + K08 + K02 + K15 조합) · 선 19개',
+  cautions:['AO·DO가 있는 4핀 소리 모듈 기준입니다. 3핀 S·+·−이면 S가 아날로그인지 먼저 확인합니다.','소리 값은 짧은 구간의 최대·최소 차이로 읽어야 박수 같은 짧은 소리를 놓치지 않습니다.'],
+  parts:[
+    {t:'res',n:'빨강용 1kΩ',legs:['C4','C7']},
+    {t:'led',n:'빨강 LED · 시끄러움',c:'#e0322b',legs:['E7','E8'],pins:['+','−']},
+    {t:'res',n:'노랑용 1kΩ',legs:['C10','C13']},
+    {t:'led',n:'노랑 LED · 주의',c:'#e8b400',legs:['E13','E14'],pins:['+','−']},
+    {t:'res',n:'초록용 1kΩ',legs:['C16','C19']},
+    {t:'led',n:'초록 LED · 조용함',c:'#1f9d4c',legs:['E19','E20'],pins:['+','−']},
+    {t:'btn',n:'택트 스위치 · 타이머 시작/정지',legs:['E22','E24','F22','F24']},
+    {t:'mod',n:'소리 감지 모듈',legs:['J4','J6','J8'],pins:['VCC +','GND −','AO']},
+    {t:'mod',n:'LCD1602 I2C',legs:['J12','J14','J16','J18'],pins:['GND','VCC','SDA','SCL']}
+  ],
+  wires:[
+    ['U:D8','A4','s','빨강 LED 신호'],
+    ['U:D9','A10','s','노랑 LED 신호'],
+    ['U:D10','A16','s','초록 LED 신호'],
+    ['U:D2','A22','s','버튼 입력 (INPUT_PULLUP)'],
+    ['U:A0','F8','s','소리 모듈 AO'],
+    ['U:A4','F16','s','LCD I2C SDA'],
+    ['U:A5','F18','s','LCD I2C SCL'],
+    ['U:5V','A1','p','5V를 1번 줄로 보냄'],
+    ['E1','F1','p','1번 줄 왼쪽·오른쪽 연결'],
+    ['G1','F4','p','소리 모듈 VCC'],
+    ['H1','F14','p','LCD VCC'],
+    ['U:GND','F2','g','GND를 2번 줄로 보냄'],
+    ['J2','A2','g','2번 줄 오른쪽·왼쪽 연결'],
+    ['B2','A8','g','빨강 LED −'],
+    ['C2','A14','g','노랑 LED −'],
+    ['D2','A20','g','초록 LED −'],
+    ['I2','J22','g','버튼 반대편 GND'],
+    ['G2','F6','g','소리 모듈 GND'],
+    ['H2','F12','g','LCD GND']
+  ]
+},
+{
+  id:'mood', key:'D · 직접 조작', name:'RGB 무드등', status:['cond','RGB 모듈 조건 확인'],
+  short:'웹 색상 선택과 조이스틱으로 같은 조명 조작',
+  who:'방이나 작업대에서 조명 분위기를 바꾸고 싶은 사람', situation:'웹에서 색을 고르거나 조이스틱으로 바로 바꾼다.',
+  big:'현재 색 (R·G·B 숫자와 색 이름)과 마지막으로 바꾼 곳 (웹/조이스틱)',
+  more:['조이스틱 X·Y 원시값과 누름 상태','저장한 색 프리셋 3개','명령 대기·적용·응답 없음 상태'],
+  cmds:['RGB r g b (각 0~255)','MODE web / stick','STOP · STATUS · PING'],
+  why:'측정보다 제어가 중심인 화면입니다. 슬라이더의 키보드 조작, 색 이름 병기, ACK 기반 피드백을 가장 직접적으로 연습합니다. 수업 P02(조이스틱·RGB)와 가깝습니다.',
+  cost:'새 펌웨어 필요 (P02 기준 수정) · 선 11개',
+  cautions:['그림은 R·G·B·− 표시가 있는 공통 음극 모듈 기준입니다. 공통 +라면 공통 핀을 5V로 바꾸고 코드의 켜는 값을 반대로 합니다.','모듈에 저항이 이미 달려 있는지 확인합니다. 달려 있어도 1kΩ을 더하면 조금 어두워질 뿐 안전합니다.','빵판 오른쪽 절반만 쓰므로 5V·GND를 F1·F2에 바로 꽂습니다.'],
+  parts:[
+    {t:'res',n:'R용 1kΩ',legs:['H4','H6']},
+    {t:'res',n:'G용 1kΩ',legs:['H8','H10']},
+    {t:'res',n:'B용 1kΩ',legs:['H12','H14']},
+    {t:'mod',n:'RGB LED 모듈 (공통 −)',legs:['J4','J8','J12','J16'],pins:['R','G','B','공통 −']},
+    {t:'mod',n:'조이스틱',legs:['J18','J20','J22','J24','J26'],pins:['GND','+5V','VRx','VRy','SW']}
+  ],
+  wires:[
+    ['U:D5','F6','s','R 밝기 (PWM)'],
+    ['U:D6','F10','s','G 밝기 (PWM)'],
+    ['U:D9','F14','s','B 밝기 (PWM)'],
+    ['U:A0','F22','s','조이스틱 X'],
+    ['U:A1','F24','s','조이스틱 Y'],
+    ['U:D2','F26','s','조이스틱 누름 (INPUT_PULLUP)'],
+    ['U:5V','F1','p','5V를 1번 줄 오른쪽으로'],
+    ['U:GND','F2','g','GND를 2번 줄 오른쪽으로'],
+    ['G2','F16','g','RGB 공통 −'],
+    ['H2','F18','g','조이스틱 GND'],
+    ['G1','F20','p','조이스틱 +5V']
+  ]
+},
+{
+  id:'pill', key:'F · 돌봄 확인 · 선택함', name:'약 복용 확인 상자', status:['ok','확인된 부품만 사용'],
+  short:'뚜껑 열림·본인 확인을 가족이 웹에서 확인',
+  who:'혼자 지내며 매일 약을 먹는 어르신(현장 사용자)과 떨어져 사는 가족(원격 사용자)', situation:'정해진 시각에 약을 먹었는지 본인은 상자에서, 가족은 웹에서 바로 안다.',
+  big:'오늘 복용 상태 (확인함 08:12 · 아직 · 시간 지남)',
+  more:['뚜껑 열림(추정)과 버튼 확인(본인 확인)을 따로 표시','이번 주 복용 달력 (PC 브라우저 기록)','보드 연결 상태와 마지막 정상 수신 시각'],
+  cmds:['REMIND 0/1 (빨강 LED 알림, 시각 판정은 PC)','MSG 0~3 (LCD 정해진 문장: 대기·복용 시간·확인됨·연결 끊김)','STOP · STATUS · PING'],
+  why:'사용자가 둘인 서비스입니다. 현장은 큰 글자 LCD·LED·버튼 하나로 단순하게, 원격은 웹 대시보드로 나눠 ISO 9241-11의 사용 맥락을 설계 근거로 보여 줄 수 있습니다. "뚜껑 열림"과 "먹었다"를 구별하는 정직한 데이터 표시가 작품의 핵심 장면이 됩니다.',
+  cost:'새 펌웨어 필요 (K02 + K03 + K06 + K15 조합) · 선 16개',
+  cautions:['기울기 스위치는 뚜껑 안쪽에 암–수 선으로 붙입니다. 닫힘·열림에서 값이 실제로 바뀌는 방향을 먼저 시리얼로 확인하고, 흔들림은 짧은 시간 안정될 때만 인정합니다.','뚜껑을 열었다고 약을 먹은 것은 아닙니다. 화면에서 "뚜껑 열림"과 "본인 확인(버튼)"을 다른 항목으로 표시합니다.','보드에는 시계가 없습니다(RTC는 조건 확인 부품). 날짜와 복용 시각 판정은 PC 시간으로 합니다. 의료기기가 아닌 시연용 작품임을 화면에 적습니다.','FND는 뺐습니다. 숫자 한 자리에 저항 8개가 필요해 빵판이 부족하고, 같은 정보를 LCD로 보여 줄 수 있습니다.'],
+  parts:[
+    {t:'res',n:'빨강용 1kΩ',legs:['C4','C7']},
+    {t:'led',n:'빨강 LED · 복용 시간 알림',c:'#e0322b',legs:['E7','E8'],pins:['+','−']},
+    {t:'res',n:'초록용 1kΩ',legs:['C10','C13']},
+    {t:'led',n:'초록 LED · 오늘 확인됨',c:'#1f9d4c',legs:['E13','E14'],pins:['+','−']},
+    {t:'btn',n:'택트 스위치 · 먹었어요',legs:['E16','E18','F16','F18']},
+    {t:'tilt',n:'볼 기울기 스위치 · 뚜껑',legs:['E20','E22']},
+    {t:'mod',n:'LCD1602 I2C',legs:['J4','J6','J8','J10'],pins:['GND','VCC','SDA','SCL']}
+  ],
+  wires:[
+    ['U:D8','A4','s','빨강 LED 신호'],
+    ['U:D9','A10','s','초록 LED 신호'],
+    ['U:D2','A16','s','확인 버튼 (INPUT_PULLUP)'],
+    ['U:D3','A20','s','뚜껑 기울기 스위치 (INPUT_PULLUP)'],
+    ['U:A4','F8','s','LCD I2C SDA'],
+    ['U:A5','F10','s','LCD I2C SCL'],
+    ['U:5V','A1','p','5V를 1번 줄로 보냄'],
+    ['E1','F1','p','1번 줄 왼쪽·오른쪽 연결'],
+    ['G1','F6','p','LCD VCC'],
+    ['U:GND','F2','g','GND를 2번 줄로 보냄'],
+    ['J2','A2','g','2번 줄 오른쪽·왼쪽 연결'],
+    ['B2','A8','g','빨강 LED −'],
+    ['C2','A14','g','초록 LED −'],
+    ['I2','J16','g','버튼 반대편 GND'],
+    ['D2','A22','g','기울기 스위치 GND'],
+    ['G2','F4','g','LCD GND']
+  ]
+}];
+/*END*/
+
+const UNO_PINS=['D2','D3','D4','D5','D6','D7','D8','D9','D10','D11','D12','D13','5V','GND','A0','A1','A2','A3','A4','A5'];
+const SIG=['#e07b00','#1f6fd1','#2e9e4f','#8a4fd0','#b8860b','#d14f8a','#14939b'];
+const colX=c=>{const i='ABCDEFGHIJ'.indexOf(c);return i<5?470+32*i:690+32*(i-5)};
+const rowY=r=>120+30*(r-1);
+const hole=h=>[colX(h[0]),rowY(+h.slice(1))];
+const unoY=p=>170+UNO_PINS.indexOf(p)*37;
+const pt=id=>id.startsWith('U:')?[300,unoY(id.slice(2))]:hole(id);
+const nameOf=id=>id.startsWith('U:')?'UNO '+id.slice(2):'빵판 '+id;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function wireColors(o){let n=0;return o.wires.map(w=>w[2]==='p'?'#d33a2c':w[2]==='g'?'#2a2a2a':SIG[n++%SIG.length])}
+function wirePath(a,b){
+  const [x1,y1]=pt(a),[x2,y2]=pt(b);
+  if(a.startsWith('U:'))return `M${x1} ${y1}C${x1+110} ${y1} ${x2-70} ${y2} ${x2} ${y2}`;
+  if((x1<650)!==(x2<650))return `M${x1} ${y1}Q${(x1+x2)/2} ${Math.min(y1,y2)-26} ${x2} ${y2}`;
+  const bend=Math.min(60,14+Math.abs(y2-y1)/12);
+  return `M${x1} ${y1}Q${Math.min(x1,x2)-bend} ${(y1+y2)/2} ${x2} ${y2}`;
+}
+function partSvg(p,i){
+  const L=p.legs.map(hole),b=(x,y)=>`<g><circle cx="${x}" cy="${y}" r="9" fill="#2f3a33"/><text x="${x}" y="${y+4}" font-size="11" fill="#fff" text-anchor="middle">${i+1}</text></g>`;
+  const dots=L.map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4.5" fill="#888" stroke="#333"/>`).join('');
+  if(p.t==='res'){const [[x,y1],[,y2]]=L;return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="#777" stroke-width="2"/><rect x="${x-6}" y="${y1+9}" width="12" height="${y2-y1-18}" rx="5" fill="#d8bf8a" stroke="#8a7346"/><rect x="${x-6}" y="${y1+16}" width="12" height="3" fill="#6b3d1e"/><rect x="${x-6}" y="${y2-19}" width="12" height="3" fill="#c9a227"/>${dots}${b(x-18,(y1+y2)/2)}`}
+  if(p.t==='led'){const [[x,y1],[,y2]]=L,cx=640,cy=(y1+y2)/2;return `<path d="M${x} ${y1}L${cx-4} ${cy-4}M${x} ${y2}L${cx-4} ${cy+4}" stroke="#777" stroke-width="2" fill="none"/><circle cx="${cx}" cy="${cy}" r="12" fill="${p.c}" stroke="#333"/><text x="${cx}" y="${cy-16}" font-size="11" text-anchor="middle" fill="#333">+ 위</text>${dots}${b(cx+22,cy)}`}
+  if(p.t==='btn'){const [[x1,y1],,[x2],[,y2]]=L;return `<rect x="${x1-8}" y="${y1-8}" width="${x2-x1+16}" height="${y2-y1+16}" rx="4" fill="#3b3b3b"/><circle cx="${(x1+x2)/2}" cy="${(y1+y2)/2}" r="14" fill="#1d1d1d" stroke="#666"/>${dots}${b((x1+x2)/2,y1-18)}`}
+  if(p.t==='pot'){const ys=L.map(l=>l[1]),x=L[0][0];return `<rect x="${x+12}" y="${ys[0]-10}" width="44" height="${ys[2]-ys[0]+20}" rx="6" fill="#2f6fb0" stroke="#1d4a78"/><circle cx="${x+34}" cy="${ys[1]}" r="13" fill="#e9eef3" stroke="#1d4a78"/><line x1="${x+34}" y1="${ys[1]}" x2="${x+34}" y2="${ys[1]-11}" stroke="#1d4a78" stroke-width="3"/>${L.map(([lx,ly])=>`<line x1="${lx}" y1="${ly}" x2="${lx+12}" y2="${ly}" stroke="#777" stroke-width="2"/>`).join('')}${dots}${b(x+66,ys[0])}`}
+  if(p.t==='cds'){const [[x,y1],[,y2]]=L,cx=640,cy=(y1+y2)/2;return `<path d="M${x} ${y1}L${cx-8} ${cy-6}M${x} ${y2}L${cx-8} ${cy+6}" stroke="#777" stroke-width="2" fill="none"/><circle cx="${cx}" cy="${cy}" r="12" fill="#f3e3c0" stroke="#8a6d35"/><path d="M${cx-7} ${cy-5}h14M${cx-7} ${cy}h14M${cx-7} ${cy+5}h14" stroke="#b5452b" stroke-width="2"/>${dots}${b(cx+22,cy)}`}
+  if(p.t==='tilt'){const [[x,y1],[,y2]]=L,cx=640,cy=(y1+y2)/2;return `<path d="M${x} ${y1}L${cx-8} ${cy-6}M${x} ${y2}L${cx-8} ${cy+6}" stroke="#777" stroke-width="2" fill="none"/><rect x="${cx-9}" y="${cy-15}" width="18" height="30" rx="8" fill="#c7ccd1" stroke="#555"/><circle cx="${cx}" cy="${cy+6}" r="5" fill="#666"/>${dots}${b(cx+22,cy)}`}
+  if(p.t==='mod'){const ys=L.map(l=>l[1]),top=ys[0]-38,h=ys[ys.length-1]-top+16;return `<rect x="872" y="${top}" width="210" height="${h}" rx="8" fill="#eaf1f7" stroke="#5b7c99"/>${b(890,top+16)}<text x="904" y="${top+21}" font-size="14" font-weight="bold" fill="#1d3550">${esc(p.n)}</text>${L.map(([lx,ly],k)=>`<line x1="${lx}" y1="${ly}" x2="872" y2="${ly}" stroke="#5b7c99" stroke-width="2" stroke-dasharray="4 3"/><text x="884" y="${ly+5}" font-size="13" fill="#1d3550">${esc(p.pins[k])}</text>`).join('')}${dots}`}
+  return '';
+}
+function svgFor(o,step){
+  const cols=wireColors(o),used=new Set(o.wires.flatMap(w=>w.slice(0,2)).filter(x=>x.startsWith('U:')).map(x=>x.slice(2)));
+  const maxRow=Math.max(26,...o.parts.flatMap(p=>p.legs).map(h=>+h.slice(1)),...o.wires.flatMap(w=>w.slice(0,2)).filter(x=>!x.startsWith('U:')).map(x=>+x.slice(1)));
+  const H=rowY(maxRow)+70;
+  let s=`<svg viewBox="0 0 1100 ${H}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Sans KR,Malgun Gothic,sans-serif" role="img" aria-labelledby="svg-t svg-d"><title id="svg-t">${esc(o.name)} 빵판 배선도</title><desc id="svg-d">${step===0?'부품만 꽂은 상태':`전선 ${step}개 연결, 방금 연결한 선: ${esc(nameOf(o.wires[step-1][0]))}에서 ${esc(nameOf(o.wires[step-1][1]))}`}. 자세한 연결은 아래 표에 있습니다.</desc>`;
+  s+=`<rect width="1100" height="${H}" fill="#fffdf7"/><text x="28" y="40" font-size="20" font-weight="bold" fill="#222">${esc(o.name)}</text><text x="28" y="66" font-size="14" fill="#704a21">USB 분리 후 조립 · 모듈 카드는 핀 이름을 펼친 그림이며 실제 좌우 순서가 아님</text>`;
+  // UNO
+  s+=`<rect x="40" y="110" width="260" height="${unoY('A5')+40-110}" rx="12" fill="#0f7391"/><rect x="24" y="130" width="34" height="56" rx="4" fill="#bfc6cc"/><text x="64" y="150" font-size="13" fill="#d8f1f8">← USB</text><text x="64" y="138" font-size="15" font-weight="bold" fill="#fff" dy="-10">Arduino UNO 호환 R3</text>`;
+  UNO_PINS.forEach(p=>{const y=unoY(p),u=used.has(p);s+=`<rect x="288" y="${y-7}" width="14" height="14" fill="#222"/><text x="278" y="${y+5}" font-size="14" text-anchor="end" fill="${u?'#fff':'#9cc8d6'}" font-weight="${u?'bold':'normal'}">${p}</text>`});
+  // breadboard
+  s+=`<rect x="446" y="92" width="400" height="${rowY(maxRow)+24-92}" rx="10" fill="#eeeae0" stroke="#bbb8ac"/><rect x="612" y="104" width="56" height="${rowY(maxRow)+12-104}" fill="#d9d4c6"/>`;
+  'ABCDEFGHIJ'.split('').forEach(c=>s+=`<text x="${colX(c)}" y="108" font-size="13" text-anchor="middle" fill="#555">${c}</text>`);
+  for(let r=1;r<=maxRow;r++){const y=rowY(r),tint=r===1?'#f6d2cc':r===2?'#d6d6d6':'#e4ead9';s+=`<rect x="460" y="${y-8}" width="148" height="16" rx="7" fill="${tint}"/><rect x="680" y="${y-8}" width="148" height="16" rx="7" fill="${tint}"/><text x="452" y="${y+5}" font-size="12" text-anchor="end" fill="#555">${r}</text>`;'ABCDEFGHIJ'.split('').forEach(c=>s+=`<circle cx="${colX(c)}" cy="${y}" r="3" fill="#6d7a70"/>`)}
+  s+=`<text x="836" y="${rowY(1)+4}" font-size="11" fill="#a33">5V</text><text x="836" y="${rowY(2)+4}" font-size="11" fill="#333">GND</text>`;
+  o.parts.forEach((p,i)=>s+=partSvg(p,i));
+  o.wires.forEach((w,i)=>{if(i>=step)return;const d=wirePath(w[0],w[1]),[x2,y2]=pt(w[1]),[x1,y1]=pt(w[0]);
+    if(i===step-1)s+=`<path d="${d}" fill="none" stroke="#ffb562" stroke-width="12" stroke-linecap="round" opacity=".9"/>`;
+    s+=`<path d="${d}" fill="none" stroke="${cols[i]}" stroke-width="${i===step-1?4.5:3}" stroke-linecap="round"/><circle cx="${x1}" cy="${y1}" r="4" fill="${cols[i]}"/><circle cx="${x2}" cy="${y2}" r="5" fill="${cols[i]}" stroke="#fff" stroke-width="1.5"/>`});
+  return s+'</svg>';
+}
+
+let cur=null,step=0;
+const tabs=document.getElementById('tabs'),panel=document.getElementById('panel');
+tabs.innerHTML=OPTIONS.map((o,i)=>`<button class="tab" role="tab" id="tab-${o.id}" aria-controls="panel" aria-selected="false" tabindex="-1"><span class="k">${esc(o.key)}</span><span class="n">${esc(o.name)}</span><span class="s">${esc(o.short)}</span><span class="pill ${o.status[0]}">${o.status[0]==='ok'?'✓ ':'! '}${esc(o.status[1])}</span></button>`).join('');
+tabs.addEventListener('click',e=>{const t=e.target.closest('.tab');if(t)select(t.id.slice(4),true)});
+tabs.addEventListener('keydown',e=>{const ids=OPTIONS.map(o=>o.id),i=ids.indexOf(cur.id);let n=null;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')n=(i+1)%ids.length;else if(e.key==='ArrowLeft'||e.key==='ArrowUp')n=(i+ids.length-1)%ids.length;else if(e.key==='Home')n=0;else if(e.key==='End')n=ids.length-1;
+  if(n!==null){e.preventDefault();select(ids[n],true);document.getElementById('tab-'+ids[n]).focus()}});
+
+function select(id,push){
+  cur=OPTIONS.find(o=>o.id===id)||OPTIONS.find(o=>o.id==='pill');step=cur.wires.length;
+  tabs.querySelectorAll('.tab').forEach(t=>{const on=t.id==='tab-'+cur.id;t.setAttribute('aria-selected',on);t.tabIndex=on?0:-1});
+  panel.setAttribute('aria-labelledby','tab-'+cur.id);
+  if(push&&location.hash!=='#'+cur.id)history.replaceState(null,'','#'+cur.id);
+  renderPanel();
+}
+function renderPanel(){
+  const o=cur,cols=wireColors(o);
+  const sigRows=o.wires.map((w,i)=>[w,i]).filter(([w])=>w[0].startsWith('U:')&&w[2]==='s');
+  panel.innerHTML=`
+  <div class="stack"><span class="eyebrow">${esc(o.key)}</span><h2 id="h-svc">${esc(o.name)}</h2><p>${esc(o.why)}</p></div>
+  <div class="cols">
+    <div class="stack"><h3>누구의 어떤 판단을 돕나</h3><ul><li><b>사용자</b> ${esc(o.who)}</li><li><b>상황</b> ${esc(o.situation)}</li><li><b>가장 크게 보일 값</b> ${esc(o.big)}</li></ul></div>
+    <div class="stack"><h3>화면에 더할 정보</h3><ul>${o.more.map(m=>`<li>${esc(m)}</li>`).join('')}</ul></div>
+    <div class="stack"><h3>보드 명령 (115200, LF)</h3><ul>${o.cmds.map(m=>`<li><code>${esc(m)}</code></li>`).join('')}</ul><p class="mono" style="color:var(--muted)">${esc(o.cost)}</p></div>
+  </div>
+  ${o.id==='pill'?`<p><a class="b primary" style="display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:8px;background:var(--accent);color:var(--accent-ink);text-decoration:none" href="pill-mockup.html">휴대폰 화면 시안 열기 →</a></p>`:''}
+  ${o.cautions.map(c=>`<p class="note">${esc(c)}</p>`).join('')}
+  <div class="stack"><h3>빵판 배선도</h3>
+    <div class="stepper" role="group" aria-label="연결 순서 이동">
+      <button class="b" id="st-first">부품만</button><button class="b" id="st-prev">이전 선</button><button class="b primary" id="st-next">다음 선</button><button class="b" id="st-all">전체 보기</button>
+    </div>
+    <p class="caption" id="st-cap" role="status"></p>
+    <div class="diagram" id="st-svg"></div>
+    <ul class="legend">${o.parts.map((p,i)=>`<li><span class="badge">${i+1}</span>${esc(p.n)} <span class="mono" style="color:var(--muted)">${p.legs.map((l,k)=>p.pins?`${esc(p.pins[k])} ${l}`:l).join(' · ')}</span></li>`).join('')}</ul>
+  </div>
+  <div class="cols">
+    <div class="stack" style="min-width:0"><h3>코드와 보드 핀</h3><div class="tablebox"><table><thead><tr><th>UNO 핀</th><th>빵판 구멍</th><th>역할</th></tr></thead><tbody>${sigRows.map(([w])=>`<tr><td class="mono">${w[0].slice(2)}</td><td class="mono">${w[1]}</td><td>${esc(w[3])}</td></tr>`).join('')}</tbody></table></div></div>
+  </div>
+  <div class="stack"><h3>한 선씩 연결</h3><div class="tablebox"><table><thead><tr><th>순서</th><th>선 색</th><th>출발</th><th>도착</th><th>역할</th><th><span class="sr">그림</span></th></tr></thead><tbody id="st-table">${o.wires.map((w,i)=>`<tr data-i="${i+1}"><td class="mono">${i+1}</td><td><span class="swatch" style="background:${cols[i]}"></span>${w[2]==='p'?'5V':w[2]==='g'?'GND':'신호'}</td><td>${esc(nameOf(w[0]))}</td><td>${esc(nameOf(w[1]))}</td><td>${esc(w[3])}</td><td><button class="row" data-go="${i+1}" aria-label="${i+1}번 선을 그림에서 보기">그림</button></td></tr>`).join('')}</tbody></table></div></div>`;
+  panel.querySelector('#st-first').onclick=()=>go(0);
+  panel.querySelector('#st-prev').onclick=()=>go(step-1);
+  panel.querySelector('#st-next').onclick=()=>go(step+1);
+  panel.querySelector('#st-all').onclick=()=>go(o.wires.length);
+  panel.querySelector('#st-table').onclick=e=>{const b=e.target.closest('[data-go]');if(b){go(+b.dataset.go);panel.querySelector('#st-svg').scrollIntoView({block:'nearest'})}};
+  go(step,true);
+}
+function go(n,quiet){
+  const o=cur;step=Math.max(0,Math.min(o.wires.length,n));
+  panel.querySelector('#st-svg').innerHTML=svgFor(o,step);
+  const w=o.wires[step-1];
+  panel.querySelector('#st-cap').textContent=step===0?`부품 ${o.parts.length}개를 표의 구멍에 꽂은 상태입니다. "다음 선"으로 1번 선부터 봅니다.`:step===o.wires.length&&quiet?`전체 ${o.wires.length}개 선을 연결한 그림입니다. "부품만"을 누르면 처음부터 한 선씩 볼 수 있습니다.`:`${step}/${o.wires.length} · ${nameOf(w[0])} → ${nameOf(w[1])} · ${w[3]}`;
+  panel.querySelector('#st-first').disabled=panel.querySelector('#st-prev').disabled=step===0;
+  panel.querySelector('#st-next').disabled=panel.querySelector('#st-all').disabled=step===o.wires.length;
+  panel.querySelectorAll('#st-table tr').forEach(tr=>tr.classList.toggle('cur',+tr.dataset.i===step));
+}
+select((location.hash||'').slice(1),false);
+addEventListener('hashchange',()=>select(location.hash.slice(1),false));
+</script>
+<style>.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}</style>

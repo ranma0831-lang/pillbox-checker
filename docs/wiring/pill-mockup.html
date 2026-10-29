@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>약 복용 확인 시안</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: 휴대폰 한 열 — 연결 띠 → 알림 띠 → 상태 카드 → 타임라인 → 달력 → 14일 그래프 → 기록 표 → 설정 */
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --fg:#17202a; --muted:#566170; --line:#d5dbe2;
+  --accent:#2457a6; --accent-ink:#fff;
+  --ok:#1b7a43; --ok-bg:#e3f3e9; --warn:#8a5a00; --warn-bg:#fff2d6; --bad:#b3261e; --bad-bg:#fde7e5; --unk:#5d6670; --unk-bg:#e8ebee;
+  --zone-win:#dfe9f7; --zone-grace:#ffe7b3;
+  --f-body:"IBM Plex Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif; --f-mono:"IBM Plex Mono",Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1318; --surface:#181e25; --fg:#e6ebf0; --muted:#a3adb8; --line:#2c3540; --accent:#7fa8ec; --accent-ink:#0b1424;
+  --ok:#6fd39a; --ok-bg:#143022; --warn:#f2c35b; --warn-bg:#33270c; --bad:#ff8a80; --bad-bg:#3a1714; --unk:#aab3bd; --unk-bg:#252c34;
+  --zone-win:#1d2c44; --zone-grace:#3d3214; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1318; --surface:#181e25; --fg:#e6ebf0; --muted:#a3adb8; --line:#2c3540; --accent:#7fa8ec; --accent-ink:#0b1424;
+  --ok:#6fd39a; --ok-bg:#143022; --warn:#f2c35b; --warn-bg:#33270c; --bad:#ff8a80; --bad-bg:#3a1714; --unk:#aab3bd; --unk-bg:#252c34;
+  --zone-win:#1d2c44; --zone-grace:#3d3214; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 var(--f-body);word-break:keep-all}
+.phone{max-width:430px;margin:0 auto;padding-block:16px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+h1,h2{margin:0;line-height:1.3;text-wrap:balance} h1{font-size:1.25rem} h2{font-size:1.02rem}
+p{margin:0}
+.demo{background:repeating-linear-gradient(135deg,var(--warn-bg) 0 10px,transparent 10px 20px);border:1px dashed var(--warn);border-radius:8px;padding:8px 12px;font-size:.88rem;display:grid;gap:6px}
+.demo label{font-weight:500}
+select,input,button{font:inherit;color:inherit}
+select,input[type=time]{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:0 10px;width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:10px;min-width:0}
+.conn{display:flex;align-items:center;gap:8px;font-size:.9rem;padding:8px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--line)}
+.conn .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);flex:none}
+.conn.off .dot{background:var(--unk)} .conn.off{background:var(--unk-bg)}
+.conn .sp{flex:1}
+.banner{border-radius:10px;padding:12px 14px;display:grid;gap:10px;border:2px solid}
+.banner.caution{background:var(--warn-bg);border-color:var(--warn)} .banner.warning{background:var(--bad-bg);border-color:var(--bad)} .banner.unknown{background:var(--unk-bg);border-color:var(--unk)}
+.banner b{font-size:1.02rem}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.btn{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:500}
+.btn[aria-pressed="true"]{background:var(--ok-bg);border-color:var(--ok)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.status{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;align-items:center}
+.status .ic{grid-row:span 2;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:1.8rem;font-weight:700}
+.status .big{font-size:1.6rem;font-weight:700;line-height:1.2}
+.status .sub{color:var(--muted);font-size:.92rem}
+.s-done .ic{background:var(--ok-bg);color:var(--ok)} .s-late .ic,.s-caution .ic,.s-due .ic{background:var(--warn-bg);color:var(--warn)}
+.s-warning .ic,.s-missed .ic{background:var(--bad-bg);color:var(--bad)} .s-before .ic,.s-window .ic,.s-unknown .ic,.s-none .ic{background:var(--unk-bg);color:var(--unk)}
+.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:.85rem}
+.meta div{background:var(--bg);border-radius:8px;padding:6px 8px} .meta b{display:block;font:500 1rem var(--f-mono)}
+svg{display:block;width:100%;height:auto}
+svg text{fill:var(--muted);font-family:var(--f-body)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.8rem;color:var(--muted);margin:0;padding:0;list-style:none}
+.cal-head{display:flex;justify-content:space-between;align-items:center}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:.75rem;color:var(--muted);text-align:center}
+.day{min-height:56px;border-radius:8px;border:1px solid var(--line);background:var(--surface);padding:3px 2px;display:grid;justify-items:center;align-content:start;gap:0;cursor:pointer;font-size:.72rem;line-height:1.25}
+.day .n{font-size:.78rem;color:var(--muted)} .day .sy{font-size:1.05rem;font-weight:700} .day .tm{font-family:var(--f-mono);font-size:.66rem}
+.day.done .sy{color:var(--ok)} .day.late .sy{color:var(--warn)} .day.missed .sy{color:var(--bad)} .day.none .sy,.day.future .sy{color:var(--unk)}
+.day.missed{background:var(--bad-bg)} .day.late{background:var(--warn-bg)}
+.day[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:1px}
+.day.future{opacity:.45;cursor:default}
+.day.today .n{font-weight:700;color:var(--fg)}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:.82rem}
+.sum div{background:var(--bg);border-radius:8px;padding:6px 8px} .sum b{display:block;font:500 1.05rem var(--f-mono)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)} th{color:var(--muted);font-weight:500}
+.note{font-size:.82rem;color:var(--muted)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<main class="phone">
+  <div class="demo" role="note">
+    <strong>연습 데이터 · 화면 시안</strong>
+    <label for="scn">상황 바꿔 보기 (시안 전용)</label>
+    <select id="scn">
+      <option value="warning">10/29 09:07 · 뚜껑만 열고 확인 안 함 (경고)</option>
+      <option value="done">10/29 09:07 · 08:12 확인됨</option>
+      <option value="before">10/29 05:30 · 인정 시작 전</option>
+      <option value="offline">10/29 09:07 · 상자 연결 끊김</option>
+    </select>
+  </div>
+
+  <header><h1>어머니 약 복용 확인</h1><p class="note">의료기기가 아닌 시연용 작품입니다.</p></header>
+
+  <div class="conn" id="conn"></div>
+  <div id="banner"></div>
+
+  <section class="card" aria-labelledby="h-today">
+    <h2 id="h-today" class="sr">오늘 복용 상태</h2>
+    <div id="status"></div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-tl">
+    <h2 id="h-tl">타임라인</h2>
+    <div id="tl"></div>
+    <ul class="legend"><li>▒ 인정 구간(2시간 전부터)</li><li>▒ 유예 30분</li><li>▲ 뚜껑 열림</li><li>✓ 본인 확인</li><li>○ 인정 전 누름</li><li>◆ 가족 확인</li></ul>
+  </section>
+
+  <section class="card" aria-labelledby="h-cal">
+    <div class="cal-head"><h2 id="h-cal">2026년 10월</h2><span class="note">날짜를 누르면 타임라인이 바뀝니다</span></div>
+    <div class="cal" id="cal" role="group" aria-label="10월 복용 달력, 화살표 키로 이동"></div>
+    <ul class="legend"><li>✓ 제시간</li><li>! 늦게 확인</li><li>✕ 놓침</li><li>· 기록 없음</li><li>▲n 뚜껑 열림 횟수</li></ul>
+  </section>
+
+  <section class="card" aria-labelledby="h-trend">
+    <h2 id="h-trend">최근 14일 확인 시각</h2>
+    <div class="sum" id="sum"></div>
+    <div id="trend"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-log">
+    <h2 id="h-log">기록</h2>
+    <div style="overflow-x:auto"><table><caption class="sr" id="log-cap"></caption><thead><tr><th>시각</th><th>사건</th></tr></thead><tbody id="log"></tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-set">
+    <h2 id="h-set">설정</h2>
+    <label for="dose">복용 시각</label>
+    <input type="time" id="dose" value="08:00">
+    <p class="note">2시간 전부터 확인을 인정하고, 30분 뒤 주의, 60분 뒤 경고합니다. 시안에서는 바꾸면 달력·그래프가 다시 계산됩니다.</p>
+    <div class="row">
+      <button class="btn" id="alerts" aria-pressed="false">알림 소리 켜기</button>
+      <button class="btn" id="pause" aria-pressed="false">자동 갱신 멈춤</button>
+    </div>
+  </section>
+</main>
+
+<script>
+const YEAR=2026,MON=9,TODAY=29;           // 2026-10-29
+const fm=m=>String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.round(m%60)).padStart(2,'0');
+const WD=['일','월','화','수','목','금','토'];
+const dateLabel=d=>`10월 ${d}일 (${WD[new Date(YEAR,MON,d).getDay()]})`;
+
+// 연습 데이터: 하루 = 사건 목록 (분 단위). 판정은 judge()가 함
+let seed=7;const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
+const HIST={};
+for(let d=1;d<TODAY;d++){
+  const ev=[];
+  if(d===22){HIST[d]={ev:[],offline:true};continue}             // PC 꺼짐
+  if(d===3||d===17){ev.push(['lid',485+rnd()*20|0],['lid',530]);ev.push(['ack',555]);HIST[d]={ev};continue} // 열었지만 확인 없음
+  if(d===12)ev.push(['early',341]);
+  const c=d===9?560:d===24?522:470+rnd()*40|0;
+  ev.push(['lid',c-3-(rnd()*4|0)],['confirm',c]);
+  if(rnd()<.3)ev.push(['lid',c+140+(rnd()*200|0)]);
+  HIST[d]={ev:ev.sort((a,b)=>a[1]-b[1])};
+}
+const SCN={
+  warning:{now:547,ev:[['lid',485],['lid',521]]},
+  done:{now:547,ev:[['lid',489],['confirm',492]]},
+  before:{now:330,ev:[]},
+  offline:{now:547,ev:[['lid',481]],lastSeen:482}
+};
+
+// 설계 2/4 판정 규칙 그대로
+function judge(day,dose,now){
+  const start=dose-120,grace=dose+30,warn=dose+60;
+  const conf=day.ev.find(e=>e[0]==='confirm'&&e[1]>=start);
+  if(day.offline)return{st:'none'};
+  if(conf)return{st:conf[1]>grace?'late':'done',at:conf[1]};
+  if(now==null)return{st:'missed'};
+  if(day.lastSeen!=null&&now-day.lastSeen>1)return{st:'unknown'};
+  if(now<start)return{st:'before'}; if(now<dose)return{st:'window'};
+  if(now<grace)return{st:'due'}; if(now<warn)return{st:'caution'}; return{st:'warning'};
+}
+// 인정 전 누름은 confirm 이벤트지만 start 이전 → 'early'로 표시
+const evName={lid:'뚜껑 열림',confirm:'본인 확인 (버튼)',early:'인정 전 누름 · 판정에 쓰지 않음',ack:'가족 확인'};
+
+const $=id=>document.getElementById(id);
+let scn='warning',sel=TODAY,dose=480,alertsOn=false,soundTimer=null,paused=false,ago=3,acked=null;
+function today(){const s=SCN[scn];const ev=[...s.ev];if(acked!=null)ev.push(['ack',acked]);return{ev,lastSeen:s.lastSeen}}
+const dayData=d=>d===TODAY?today():HIST[d];
+const nowM=()=>SCN[scn].now;
+// 시안 데이터의 'early'와 판정 기준 이전 confirm을 함께 처리
+const norm=(day)=>({...day,ev:day.ev.map(e=>e[0]==='early'?['confirm',e[1]]:e)});
+const J=d=>judge(norm(dayData(d)),dose,d===TODAY?nowM():null);
+
+function render(){
+  const tj=J(TODAY),now=nowM();
+  // 연결 띠
+  const off=scn==='offline';
+  $('conn').className='conn'+(off?' off':'');
+  $('conn').innerHTML=off?`<span class="dot"></span><span class="sp"><b>상자 연결 끊김</b> · 마지막 수신 ${fm(SCN.offline.lastSeen)} (${now-SCN.offline.lastSeen}분 전)</span>`
+    :`<span class="dot"></span><span class="sp">상자 연결됨 · ${paused?'갱신 멈춤':ago+'초 전 수신'}</span>`;
+  // 알림 띠
+  let bn='';
+  if(tj.st==='unknown')bn=`<div class="banner unknown" role="status"><b>⚠ 상자 상태를 알 수 없어요</b><p>PC 프로그램이나 USB 연결을 확인해 주세요. 마지막으로 받은 기록까지만 보여 줍니다.</p></div>`;
+  else if(tj.st==='caution'||tj.st==='warning'){
+    const w=tj.st==='warning';
+    bn=`<div class="banner ${tj.st}" role="${w&&acked==null?'alert':'status'}"><b>${w?'✕ 1시간이 지났는데 아직 확인되지 않았어요':'! 아직 확인되지 않았어요'}</b><p>복용 시각 ${fm(dose)} · 뚜껑 열림 ${today().ev.filter(e=>e[0]==='lid').length}회, 버튼 확인 없음${acked!=null?` · 가족 확인 ${fm(acked)}`:''}</p>${acked==null?`<div class="row"><button class="btn primary" id="ack">확인했어요</button>${alertsOn?'<button class="btn" id="mute">소리 끄기</button>':''}</div>`:''}</div>`;
+  }
+  $('banner').innerHTML=bn;
+  if($('ack'))$('ack').onclick=()=>{acked=now;stopSound();render();$('h-today').focus?.()};
+  if($('mute'))$('mute').onclick=()=>{stopSound(true);render()};
+  // 상태 카드
+  const S={done:['✓',`오늘 ${fm(tj.at)} 확인됨`],late:['!',`오늘 ${fm(tj.at)} 늦게 확인됨`],before:['–','아직 인정 시간 전'],window:['–','곧 드실 시간'],due:['…','지금 드실 시간'],caution:['!','아직 확인 안 됨'],warning:['✕','확인 안 됨 · 1시간 지남'],unknown:['?','상태를 알 수 없음']}[tj.st];
+  $('status').className='status s-'+tj.st;
+  $('status').innerHTML=`<span class="ic" aria-hidden="true">${S[0]}</span><span class="big">${S[1]}</span><span class="sub">${dateLabel(TODAY)} · 지금 ${fm(now)}</span>`;
+  $('meta').innerHTML=`<div>복용 시각<b>${fm(dose)}</b></div><div>인정 시작<b>${fm(dose-120)}</b></div><div>뚜껑 열림<b>${today().ev.filter(e=>e[0]==='lid').length}회</b></div>`;
+  document.title=(tj.st==='warning'&&acked==null?'(!) ':'')+'약 복용 확인 시안';
+  // 알림 소리
+  if(tj.st==='warning'&&acked==null&&alertsOn&&!soundTimer)startSound();
+  if(!(tj.st==='warning'&&acked==null))stopSound();
+  renderTimeline();renderCal();renderTrend();renderLog();
+}
+
+function renderTimeline(){
+  const day=dayData(sel),isT=sel===TODAY,now=nowM(),A=240,B=1440,X=m=>20+(Math.min(B,Math.max(A,m))-A)/(B-A)*320;
+  const st=dose-120,gr=dose+30;
+  let s=`<svg viewBox="0 0 360 130" role="img" aria-labelledby="tl-t"><title id="tl-t">${dateLabel(sel)} 타임라인. 자세한 내용은 아래 기록 표에 있습니다.</title>`;
+  s+=`<text x="20" y="14" font-size="12" style="fill:var(--fg);font-weight:500">${dateLabel(sel)}${isT?' · 오늘':''}</text>`;
+  s+=`<rect x="${X(st)}" y="30" width="${X(dose)-X(st)}" height="56" style="fill:var(--zone-win)"/><rect x="${X(dose)}" y="30" width="${X(gr)-X(dose)}" height="56" style="fill:var(--zone-grace)"/>`;
+  s+=`<line x1="20" y1="72" x2="340" y2="72" style="stroke:var(--line)" stroke-width="2"/>`;
+  for(let h=4;h<=24;h+=2){const x=X(h*60);s+=`<line x1="${x}" y1="86" x2="${x}" y2="${h%4?90:93}" style="stroke:var(--muted)"/>`;if(h%4===0)s+=`<text x="${x}" y="106" font-size="11" text-anchor="middle">${String(h).padStart(2,'0')}</text>`}
+  s+=`<line x1="${X(dose)}" y1="24" x2="${X(dose)}" y2="88" style="stroke:var(--accent)" stroke-width="2"/><text x="${X(dose)+3}" y="26" font-size="10" style="fill:var(--accent)">복용 ${fm(dose)}</text>`;
+  if(isT){const x=X(now);s+=`<line x1="${x}" y1="30" x2="${x}" y2="88" style="stroke:var(--fg)" stroke-dasharray="3 3"/><text x="${x}" y="122" font-size="10" text-anchor="middle" style="fill:var(--fg)">지금</text>`}
+  const ev=norm(day).ev;
+  ev.forEach(([k,m])=>{const x=X(m);
+    if(k==='lid')s+=`<path d="M${x} 44l-6 10h12z" style="fill:var(--muted)"><title>뚜껑 열림 ${fm(m)}</title></path>`;
+    else if(k==='confirm'&&m>=st)s+=`<g><circle cx="${x}" cy="72" r="9" style="fill:var(--ok)"/><path d="M${x-4} 72l3 3 5-6" fill="none" style="stroke:var(--surface)" stroke-width="2"/><title>본인 확인 ${fm(m)}</title></g>`;
+    else if(k==='confirm')s+=`<circle cx="${x}" cy="72" r="7" style="fill:var(--surface);stroke:var(--muted)" stroke-width="2"><title>인정 전 누름 ${fm(m)}</title></circle>`;
+    else if(k==='ack')s+=`<path d="M${x} 84l6 6-6 6-6-6z" style="fill:var(--accent)"><title>가족 확인 ${fm(m)}</title></path>`});
+  if(day.offline)s+=`<text x="180" y="62" font-size="12" text-anchor="middle" style="fill:var(--fg)">이날은 PC가 꺼져 기록이 없습니다</text>`;
+  $('tl').innerHTML=s+'</svg>';
+}
+
+function renderCal(){
+  const first=(new Date(YEAR,MON,1).getDay()+6)%7,days=31,SY={done:'✓',late:'!',missed:'✕',none:'·'};
+  let h=['월','화','수','목','금','토','일'].map(w=>`<span class="wd" aria-hidden="true">${w}</span>`).join('')+'<span></span>'.repeat(first);
+  for(let d=1;d<=days;d++){
+    if(d>TODAY){h+=`<span class="day future" aria-hidden="true"><span class="n">${d}</span></span>`;continue}
+    const j=J(d),cls=d===TODAY?(j.st==='done'||j.st==='late'?j.st:'none'):j.st,lids=dayData(d).ev.filter(e=>e[0]==='lid').length;
+    const sy=d===TODAY&&!(j.st==='done'||j.st==='late')?'…':SY[j.st];
+    const word={done:'제시간 확인',late:'늦게 확인',missed:'놓침',none:'기록 없음'}[j.st]||'진행 중';
+    h+=`<button class="day ${cls}${d===TODAY?' today':''}" data-d="${d}" aria-pressed="${d===sel}" tabindex="${d===sel?0:-1}" aria-label="${dateLabel(d)}, ${word}${j.at?' '+fm(j.at):''}, 뚜껑 열림 ${lids}회"><span class="n">${d}</span><span class="sy" aria-hidden="true">${sy}</span><span class="tm" aria-hidden="true">${j.at?fm(j.at):lids?'▲'+lids:''}</span></button>`;
+  }
+  $('cal').innerHTML=h;
+}
+$('cal').addEventListener('click',e=>{const b=e.target.closest('button.day');if(b){sel=+b.dataset.d;render();$('cal').querySelector(`[data-d="${sel}"]`).focus()}});
+$('cal').addEventListener('keydown',e=>{const k={ArrowLeft:-1,ArrowRight:1,ArrowUp:-7,ArrowDown:7}[e.key];if(!k)return;e.preventDefault();const n=Math.min(TODAY,Math.max(1,sel+k));sel=n;render();$('cal').querySelector(`[data-d="${sel}"]`).focus()});
+
+function renderTrend(){
+  const ds=[];for(let d=TODAY-13;d<=TODAY;d++)ds.push(d);
+  const A=300,B=660,Y=m=>150-(Math.min(B,Math.max(A,m))-A)/(B-A)*120,X=i=>44+i*21.5;
+  let s=`<svg viewBox="0 0 360 185" role="img" aria-labelledby="tr-t"><title id="tr-t">최근 14일 확인 시각. 날짜별 값은 달력과 기록 표에도 있습니다.</title>`;
+  s+=`<rect x="34" y="${Y(dose+30)}" width="316" height="${Y(dose-120)-Y(dose+30)}" style="fill:var(--zone-win)"/>`;
+  for(let h=5;h<=11;h++){const y=Y(h*60);s+=`<line x1="34" y1="${y}" x2="350" y2="${y}" style="stroke:var(--line)"/>`;if(h%2)s+=`<text x="30" y="${y+4}" font-size="10" text-anchor="end">${String(h).padStart(2,'0')}:00</text>`}
+  s+=`<line x1="34" y1="${Y(dose)}" x2="350" y2="${Y(dose)}" style="stroke:var(--accent)" stroke-width="1.5" stroke-dasharray="5 3"/>`;
+  ds.forEach((d,i)=>{const j=J(d),x=X(i);
+    if(i%2===1||d===TODAY)s+=`<text x="${x}" y="176" font-size="10" text-anchor="middle">${d}</text>`;
+    if(j.at)s+=`<circle cx="${x}" cy="${Y(j.at)}" r="5" style="fill:${j.st==='late'?'var(--warn)':'var(--ok)'}"><title>${dateLabel(d)} ${fm(j.at)}</title></circle>`;
+    else if(j.st==='missed')s+=`<text x="${x}" y="${Y(B)+12}" font-size="14" text-anchor="middle" style="fill:var(--bad);font-weight:700">✕<title>${dateLabel(d)} 놓침</title></text>`;
+    else if(j.st==='none')s+=`<text x="${x}" y="${Y(B)+12}" font-size="14" text-anchor="middle">·<title>${dateLabel(d)} 기록 없음</title></text>`;
+  });
+  $('trend').innerHTML=s+'</svg>';
+  const wk=ds.slice(-7).filter(d=>d!==TODAY||['done','late'].includes(J(d).st));
+  const ok=wk.filter(d=>J(d).at!=null),avg=ok.length?ok.reduce((a,d)=>a+J(d).at,0)/ok.length:null;
+  $('sum').innerHTML=`<div>최근 7일 확인<b>${ok.length}/${wk.length}일</b></div><div>평균 확인<b>${avg==null?'—':fm(avg)}</b></div><div>복용 시각 대비<b>${avg==null?'—':(avg-dose>=0?'+':'−')+Math.abs(Math.round(avg-dose))+'분'}</b></div>`;
+}
+
+function renderLog(){
+  const day=dayData(sel),ev=norm(day).ev,st=dose-120;
+  $('log-cap').textContent=dateLabel(sel)+' 기록';
+  $('log').innerHTML=day.offline?`<tr><td>—</td><td>PC가 꺼져 기록 없음</td></tr>`:ev.length?ev.map(([k,m])=>`<tr><td class="mono">${fm(m)}</td><td>${k==='confirm'&&m<st?evName.early:evName[k]}</td></tr>`).join(''):`<tr><td>—</td><td>아직 기록 없음</td></tr>`;
+}
+
+// 알림 소리: 사용자가 '알림 소리 켜기'를 누른 뒤에만
+let actx=null;
+function beep(){try{actx=actx||new AudioContext();const o=actx.createOscillator(),g=actx.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g).connect(actx.destination);o.start();o.stop(actx.currentTime+.35)}catch(e){}}
+function startSound(){beep();try{navigator.vibrate?.([300,150,300])}catch(e){}soundTimer=setInterval(beep,4000)}
+function stopSound(off){clearInterval(soundTimer);soundTimer=null;if(off){alertsOn=false;$('alerts').setAttribute('aria-pressed','false');$('alerts').textContent='알림 소리 켜기'}}
+$('alerts').onclick=()=>{alertsOn=!alertsOn;$('alerts').setAttribute('aria-pressed',alertsOn);$('alerts').textContent=alertsOn?'알림 소리 켜짐':'알림 소리 켜기';if(alertsOn){try{actx=actx||new AudioContext();actx.resume()}catch(e){}}else stopSound();render()};
+$('pause').onclick=()=>{paused=!paused;$('pause').setAttribute('aria-pressed',paused);$('pause').textContent=paused?'자동 갱신 다시 시작':'자동 갱신 멈춤';render()};
+$('dose').onchange=e=>{const [h,m]=e.target.value.split(':').map(Number);if(!isNaN(h)&&!isNaN(m)){dose=h*60+m;render()}};
+$('scn').onchange=e=>{scn=e.target.value;acked=null;sel=TODAY;render()};
+setInterval(()=>{if(paused||scn==='offline')return;ago=ago>=2?1:ago+1;const c=$('conn').querySelector('.sp');if(c)c.textContent=`상자 연결됨 · ${ago}초 전 수신`},1000);
+render();
+</script>
+</body>
+</html>
