@@ -6,8 +6,8 @@
 | 확인 | 보낼 것 / 할 일 | 기대 결과 | 결과 |
 |---|---|---|---|
 | 프로파일 | `1 STATUS` | `"profile":"PILL"`, `"request":1` | 2026-10-29 COM5: `9 STATUS` → `"profile":"PILL","request":9` 확인 |
-| 뚜껑 | 열고 닫기, 흔들기 | `lid_open`/`lid_close` 각 1회. 반대면 `LID_OPEN_LEVEL`을 LOW로 | 미실시 |
-| 버튼 | 길게 눌렀다 떼기 | `press` 1회 | **문제**: 누르지 않아도 `button_pressed:true`가 계속됨 → 버튼 방향 확인 필요 |
+| 뚜껑 | 열고 닫기, 흔들기 | `lid_open`/`lid_close` 각 1회. 반대면 `LID_OPEN_LEVEL`을 LOW로 | 통과: 기울임 → lid_open, 세움 → lid_close (방향 수정 불필요) |
+| 버튼 | 길게 눌렀다 떼기 | `press` 1회 | **문제**: 누르지 않아도 `button_pressed:true`가 계속됨 → D2 선을 빼면 해제됨 = 빵판 16번 줄 왼쪽이 GND와 붙어 있음. 버튼 방향(90°) 또는 GND 선 위치(J16) 수정 중 |
 | 인정 전 | `2 WINDOW 0` 후 버튼 | 초록 두 번 깜빡임 | 미실시 |
 | 인정 중 | `3 WINDOW 1` 후 버튼 | 초록 켜짐 유지 | 미실시 |
 | 알림 | `4 REMIND 1` | 빨강 0.5초 깜빡임 | ACK 확인. 깜빡임은 눈으로 확인 필요 |
