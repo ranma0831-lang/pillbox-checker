@@ -130,6 +130,9 @@ void setup() {
   digitalWrite(PIN_RED, LOW); digitalWrite(PIN_GREEN, LOW);
   pinMode(PIN_BUTTON, INPUT_PULLUP); pinMode(PIN_LID, INPUT_PULLUP);
   Serial.begin(115200);
+  // LCD 선이 빠지거나 전원이 없으면 I2C가 멈춰 상자 전체가 멈춘다. 시간 제한을 걸어 LCD 없이도 동작하게 한다.
+  Wire.begin();
+  Wire.setWireTimeout(25000, true);
   lcdReady = lcd.begin(16, 2) == 0;
   showMsg(0);
   lidRaw = digitalRead(PIN_LID); lidOpen = (lidRaw == LID_OPEN_LEVEL);
