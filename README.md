@@ -35,7 +35,7 @@ SZH-EK013 아두이노 고급키트: UNO 호환 R3, 빵판, 빨강·초록 LED, 
 | D3 | 볼 기울기 스위치 (뚜껑 안쪽) |
 | A4 / A5 | LCD SDA / SCL |
 
-한 선씩 따라 하는 배선도: [`docs/wiring/index.html`](docs/wiring/index.html)의 F 탭. 택트 스위치는 다리 방향을 확인해서 꽂아야 합니다. 90° 돌아가면 늘 눌린 상태로 읽힙니다.
+한 선씩 따라 하는 배선도: [배선도 페이지](https://ranma0831-lang.github.io/pillbox-checker/wiring/index.html#pill) (저장소의 `docs/wiring/index.html`, F 탭). 보드 없이 보는 [휴대폰 화면 시안](https://ranma0831-lang.github.io/pillbox-checker/wiring/pill-mockup.html). 택트 스위치는 다리 방향을 확인해서 꽂아야 합니다. 90° 돌아가면 늘 눌린 상태로 읽힙니다.
 
 ## 실행
 

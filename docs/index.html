@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>약 복용 확인 상자</title>
+<style>
+  :root{--bg:#f5f4f1;--surface:#fff;--fg:#1b1e2a;--muted:#625f5a;--accent:#5b4ee8}
+  @media (prefers-color-scheme:dark){:root{--bg:#14161d;--surface:#1e212b;--fg:#f2f1ee;--muted:#aaa7a1;--accent:#a69eff;color-scheme:dark}}
+  body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.7 "Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif;word-break:keep-all}
+  main{max-width:560px;margin:0 auto;padding:40px 16px;display:grid;gap:14px}
+  h1{margin:0;font-size:1.6rem} p{margin:0;color:var(--muted)}
+  a.card{display:grid;gap:2px;background:var(--surface);border-radius:20px;padding:18px 20px;color:var(--fg);text-decoration:none;box-shadow:0 10px 30px rgba(60,52,30,.07)}
+  a.card b{color:var(--accent);font-size:1.05rem} a.card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+</style>
+<main>
+  <h1>약 복용 확인 상자</h1>
+  <p>Arduino UNO + Python + 휴대폰 웹 대시보드. 의료기기가 아닌 시연용 작품입니다.</p>
+  <a class="card" href="wiring/pill-mockup.html"><b>휴대폰 화면 시안 →</b><span>연습 데이터로 달력·타임라인·알림을 눌러 볼 수 있습니다</span></a>
+  <a class="card" href="wiring/index.html#pill"><b>빵판 배선도 →</b><span>16개 선을 한 선씩 따라 연결하는 그림 (F 탭)</span></a>
+  <a class="card" href="https://github.com/ranma0831-lang/pillbox-checker"><b>코드 저장소 →</b><span>펌웨어, PC 프로그램, 테스트, 설계 문서</span></a>
+</main>
+</html>
