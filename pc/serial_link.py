@@ -5,7 +5,8 @@ import time
 
 ACK_TIMEOUT = 2.0
 RECONNECT_DELAY = 3.0
-BOOT_WAIT = 2.0  # 포트를 열면 UNO가 재시작함
+BOOT_WAIT = 1.0  # 포트를 열면 UNO가 재시작함
+BOOT_LISTEN = 5.0  # 재시작 뒤 첫 메시지를 기다리는 최대 시간
 
 
 def parse_line(raw):
@@ -28,6 +29,7 @@ class Link:
         self._next = 1
         self._pending = {}
         self._lock = threading.Lock()
+        self.boot_wait = BOOT_WAIT
 
     def send(self, cmd):
         with self._lock:
@@ -74,10 +76,17 @@ class Link:
                 stop.wait(RECONNECT_DELAY)
                 continue
             self.port = port
-            stop.wait(BOOT_WAIT)
-            self.on_message({"type": "link", "state": "up"})
-            self.send("STATUS")
+            stop.wait(self.boot_wait)
             try:
+                # 재시작 중인 보드는 명령을 버리므로, 첫 정상 메시지를 받은 뒤에 연결됨으로 본다
+                # 재시작 전에 쌓여 있던 줄은 버린다 (Windows는 포트를 다시 열어도 남겨 둠)
+                getattr(port, "reset_input_buffer", lambda: None)()
+                self.last_rx = None
+                deadline = self.clock() + BOOT_LISTEN
+                while not stop.is_set() and self.last_rx is None and self.clock() < deadline:
+                    self.handle(port.readline())
+                self.on_message({"type": "link", "state": "up"})
+                self.send("STATUS")
                 while not stop.is_set():
                     self.handle(port.readline())
             except Exception:

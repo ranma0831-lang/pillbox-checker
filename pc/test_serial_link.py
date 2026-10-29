@@ -57,6 +57,16 @@ class SerialLinkTest(unittest.TestCase):
         self.clock.t += 2.1
         self.assertEqual(self.link.poll_timeouts(), [])
 
+    def test_link_up_only_after_board_speaks(self):
+        port = FakePort([b"", b"\x00garbage", b'{"v":1,"type":"state","profile":"PILL","request":0}\n'])
+        stop = __import__("threading").Event()
+        msgs = []
+        link = Link(lambda: port, lambda m: (msgs.append(m), m.get("type") == "state" and stop.set()), clock=self.clock)
+        link.boot_wait = 0
+        link.run_forever(stop)
+        self.assertEqual([m["type"] for m in msgs][:2], ["state", "link"])  # 보드가 말한 뒤에 연결됨
+        self.assertIn(b"STATUS", port.written)
+
     def test_no_pending_when_port_missing(self):
         self.link.port = None
         self.link.send("PING")
