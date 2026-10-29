@@ -5,12 +5,14 @@
 
 | 확인 | 보낼 것 / 할 일 | 기대 결과 | 결과 |
 |---|---|---|---|
-| 프로파일 | `1 STATUS` | `"profile":"PILL"`, `"request":1` | 미실시 |
+| 프로파일 | `1 STATUS` | `"profile":"PILL"`, `"request":1` | 2026-10-29 COM5: `9 STATUS` → `"profile":"PILL","request":9` 확인 |
 | 뚜껑 | 열고 닫기, 흔들기 | `lid_open`/`lid_close` 각 1회. 반대면 `LID_OPEN_LEVEL`을 LOW로 | 미실시 |
-| 버튼 | 길게 눌렀다 떼기 | `press` 1회 | 미실시 |
+| 버튼 | 길게 눌렀다 떼기 | `press` 1회 | **문제**: 누르지 않아도 `button_pressed:true`가 계속됨 → 버튼 방향 확인 필요 |
 | 인정 전 | `2 WINDOW 0` 후 버튼 | 초록 두 번 깜빡임 | 미실시 |
 | 인정 중 | `3 WINDOW 1` 후 버튼 | 초록 켜짐 유지 | 미실시 |
-| 알림 | `4 REMIND 1` | 빨강 0.5초 깜빡임 | 미실시 |
-| LCD | `5 MSG 1` | `TAKE MEDICINE` | 미실시 |
-| 오류 | `6 FOO` | `"type":"error"` | 미실시 |
+| 알림 | `4 REMIND 1` | 빨강 0.5초 깜빡임 | ACK 확인. 깜빡임은 눈으로 확인 필요 |
+| LCD | `5 MSG 1` | `TAKE MEDICINE` | ACK 확인. LCD 글자는 눈으로 확인 필요 (`lcd_ready:true`) |
+| 오류 | `6 FOO` | `"type":"error"` | `4 FOO`·`5 MSG 7` → bad_command, `abc` → bad_request 확인 |
 | PC 끊김 | 10초 동안 아무것도 안 보냄 | LCD `PC LOST`, 빨강 멈춤 | 미실시 |
+
+참고: 포트를 열면 UNO가 재시작하고, 그 전에 쌓인 줄이 반쯤 잘려 먼저 들어옵니다. PC 프로그램은 이런 줄을 버리도록 되어 있습니다.
