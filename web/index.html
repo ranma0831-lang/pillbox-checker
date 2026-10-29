@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>약 복용 확인</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="phone">
+  <div class="demo" id="demo" hidden><strong>연습 데이터</strong> · 실제 상자 기록이 아닙니다.</div>
+
+  <header><h1>약 복용 확인</h1><p class="note">의료기기가 아닌 시연용 작품입니다.</p></header>
+
+  <div class="conn" id="conn"><span class="dot"></span><span class="sp">연결 확인 중…</span></div>
+  <p class="sr" id="live" role="status"></p>
+  <div id="banner"></div>
+
+  <section class="card" aria-labelledby="h-today">
+    <h2 id="h-today" class="sr" tabindex="-1">오늘 복용 상태</h2>
+    <div id="status" class="status s-unknown"><span class="ic" aria-hidden="true">?</span><span class="big">불러오는 중</span><span class="sub"></span></div>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-tl">
+    <h2 id="h-tl">타임라인</h2>
+    <div id="tl"></div>
+    <ul class="legend"><li>▒ 인정 구간(2시간 전부터)</li><li>▒ 유예 30분</li><li>▲ 뚜껑 열림</li><li>✓ 본인 확인</li><li>○ 인정 전 누름</li><li>◆ 가족 확인</li></ul>
+  </section>
+
+  <section class="card" aria-labelledby="h-cal">
+    <div class="cal-head"><h2 id="h-cal">달력</h2><span class="note">날짜를 누르면 타임라인이 바뀝니다</span></div>
+    <div class="cal" id="cal" role="group" aria-label="복용 달력, 화살표 키로 이동"></div>
+    <ul class="legend"><li>✓ 제시간</li><li>! 늦게 확인</li><li>✕ 놓침</li><li>· 기록 없음</li><li>▲n 뚜껑 열림 횟수</li></ul>
+  </section>
+
+  <section class="card" aria-labelledby="h-trend">
+    <h2 id="h-trend">최근 14일 확인 시각</h2>
+    <div class="sum" id="sum"></div>
+    <div id="trend"></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-log">
+    <h2 id="h-log">기록</h2>
+    <div class="scroll"><table><caption class="sr" id="log-cap"></caption><thead><tr><th>시각</th><th>사건</th></tr></thead><tbody id="log"></tbody></table></div>
+  </section>
+
+  <section class="card" aria-labelledby="h-set">
+    <h2 id="h-set">설정</h2>
+    <form id="set-form" class="stack" novalidate>
+      <label for="dose">복용 시각</label>
+      <input type="time" id="dose" name="dose" required aria-describedby="dose-help dose-err">
+      <p class="note" id="dose-help">2시간 전부터 확인을 인정하고, 30분 뒤 주의, 60분 뒤 경고합니다.</p>
+      <p class="err" id="dose-err" role="alert"></p>
+      <button class="btn primary" type="submit">복용 시각 저장</button>
+    </form>
+    <div class="row">
+      <button class="btn" id="alerts" type="button" aria-pressed="false">알림 소리 켜기</button>
+      <button class="btn" id="pause" type="button" aria-pressed="false">자동 갱신 멈춤</button>
+    </div>
+    <p class="note">알림은 이 페이지가 열려 있을 때만 울립니다.</p>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>
