@@ -37,6 +37,10 @@ async function poll() {
 function offline(text) {
   $('conn').className = 'conn off';
   $('conn').querySelector('.sp').innerHTML = `<b>${text}</b>`;
+  // 예전 상태가 지금 상태처럼 보이지 않게 카드와 알림 띠를 '알 수 없음'으로 바꾼다
+  $('status').className = 'status s-unknown';
+  $('status').innerHTML = `<span class="ic" aria-hidden="true">?</span><span class="big">상태를 알 수 없음</span><span class="sub">${S ? `마지막으로 받은 시각 ${S.now}` : '아직 받은 기록이 없습니다'}</span>`;
+  $('banner').innerHTML = `<div class="banner unknown"><b>⚠ ${text}</b><p>약을 드셨는지 지금은 확인할 수 없습니다. 상자 쪽 PC를 확인해 주세요.</p></div>`;
   say(text);
   stopSound();
 }
@@ -81,17 +85,17 @@ function render() {
   renderTimeline(); renderCal(); renderTrend(); renderLog();
 }
 
-const dayOf = iso => iso === S.date ? { date: S.date, status: S.status, at: S.at, events: S.events } : H.find(d => d.date === iso);
+const dayOf = iso => iso === S.date ? { date: S.date, status: S.status, at: S.at, events: S.events, dose_time: S.dose_time } : H.find(d => d.date === iso);
 
 function renderTimeline() {
-  const d = dayOf(sel), isT = sel === S.date, dose = toM(S.dose_time), A = 240, B = 1440;
+  const d = dayOf(sel), isT = sel === S.date, dose = toM(d.dose_time || S.dose_time), A = 240, B = 1440;  // 그날 적용된 복용 시각
   const X = m => 20 + (Math.min(B, Math.max(A, m)) - A) / (B - A) * 320;
   let s = `<svg viewBox="0 0 360 130" role="img" aria-label="${dLabel(sel)} 타임라인. 자세한 내용은 아래 기록 표에 있습니다.">`;
   s += `<text x="20" y="14" font-size="12" style="fill:var(--fg);font-weight:500">${dLabel(sel)}${isT ? ' · 오늘' : ''}</text>`;
   s += `<rect x="${X(dose - 120)}" y="30" width="${X(dose) - X(dose - 120)}" height="56" style="fill:var(--zone-win)"/><rect x="${X(dose)}" y="30" width="${X(dose + 30) - X(dose)}" height="56" style="fill:var(--zone-grace)"/>`;
   s += `<line x1="20" y1="72" x2="340" y2="72" style="stroke:var(--line)" stroke-width="2"/>`;
   for (let h = 4; h <= 24; h += 2) { const x = X(h * 60); s += `<line x1="${x}" y1="86" x2="${x}" y2="${h % 4 ? 90 : 93}" style="stroke:var(--muted)"/>`; if (h % 4 === 0) s += `<text x="${x}" y="106" font-size="11" text-anchor="middle">${String(h).padStart(2, '0')}</text>`; }
-  s += `<line x1="${X(dose)}" y1="24" x2="${X(dose)}" y2="88" style="stroke:var(--accent)" stroke-width="2"/><text x="${X(dose) + 3}" y="26" font-size="10" style="fill:var(--accent)">복용 ${S.dose_time}</text>`;
+  s += `<line x1="${X(dose)}" y1="24" x2="${X(dose)}" y2="88" style="stroke:var(--accent)" stroke-width="2"/><text x="${X(dose) + 3}" y="26" font-size="10" style="fill:var(--accent)">복용 ${fm(dose)}</text>`;
   if (isT) { const x = X(toM(S.now)); s += `<line x1="${x}" y1="30" x2="${x}" y2="88" style="stroke:var(--fg)" stroke-dasharray="3 3"/><text x="${x}" y="122" font-size="10" text-anchor="middle" style="fill:var(--fg)">지금</text>`; }
   for (const e of d.events) {
     const x = X(toM(e.t));

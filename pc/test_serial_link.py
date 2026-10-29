@@ -51,6 +51,12 @@ class SerialLinkTest(unittest.TestCase):
         self.assertEqual(self.link.poll_timeouts(), [])
         self.assertEqual(self.link.unconfirmed, 1)
 
+    def test_no_pending_when_port_missing(self):
+        self.link.port = None
+        self.link.send("PING")
+        self.clock.t += 2.1
+        self.assertEqual(self.link.poll_timeouts(), [])
+
     def test_handle_counts_bad_lines_and_forwards_good(self):
         self.link.handle(b"garbage")
         self.link.handle(b'{"v":1,"type":"event","event":"press","ms":5}')

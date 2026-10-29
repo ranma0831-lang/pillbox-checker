@@ -33,8 +33,9 @@ class Link:
         with self._lock:
             n = self._next
             self._next = 1 if n >= 65535 else n + 1
-            self._pending[n] = self.clock()
             port = self.port
+            if port is not None:  # 포트가 없으면 보내지도 않았으므로 응답을 기다리지 않음
+                self._pending[n] = self.clock()
         if port is not None:
             try:
                 port.write(f"{n} {cmd}\n".encode("ascii"))

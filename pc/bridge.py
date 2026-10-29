@@ -69,6 +69,10 @@ class App:
                 self._append("unconfirmed", request=msg.get("request"))
                 return
             self.last_rx = self.clock()
+            if kind == "state" and self._sent_out is not None:
+                board = {"REMIND": msg.get("remind"), "DONE": msg.get("done"), "MSG": msg.get("msg")}
+                if any(v is not None and v != self._sent_out[k] for k, v in board.items()):
+                    self._sent_out = None  # 보드가 보고한 출력이 판정과 다르면 다음 tick에 다시 맞춤
             if kind == "event":
                 ev = msg.get("event")
                 if ev == "press":
@@ -87,6 +91,8 @@ class App:
 
     def tick(self):
         with self._lock:
+            if not self.link_up:  # 끊긴 보드에 보낸 명령은 모두 '미확인'으로 쌓이기만 함
+                return
             now = self.clock()
             v = self._today(now)
             if v["status"] != "unknown":  # 보드와 끊긴 동안은 출력 명령을 보내지 않음
@@ -101,8 +107,9 @@ class App:
 
     def set_dose(self, dose_time):
         with self._lock:
+            prev = self.settings["dose_time"]
             self.settings = store.save_settings(self.set_path, dose_time)
-            self._append("setting", dose_time=dose_time)
+            self._append("setting", dose_time=dose_time, prev=prev)
             self._sent_out = None
 
     def ack(self):
@@ -111,6 +118,16 @@ class App:
                 raise ValueError("지금은 확인할 알림이 없습니다")
             self._append("ack")
             return self.state()
+
+    def dose_on(self, day):
+        """그날 적용된 복용 시각: 그날까지의 마지막 변경, 없으면 첫 변경 전 값, 기록이 없으면 현재 값."""
+        changes = [r for r in self.records if r["e"] == "setting" and isinstance(r.get("dose_time"), str)]
+        before = [r for r in changes if r["_dt"].date() <= day]
+        if before:
+            return before[-1]["dose_time"]
+        if changes and isinstance(changes[0].get("prev"), str):
+            return changes[0]["prev"]
+        return self.settings["dose_time"]
 
     # ---- API ----
     def _events(self, day):
@@ -148,8 +165,9 @@ class App:
                 if d == now.date():
                     v = self._today(now)
                 else:
-                    v = judge(presses.get(d, []), self.dose, None, has_records=d in has, grace=self.settings["grace_min"])
+                    v = judge(presses.get(d, []), parse_hhmm(self.dose_on(d)), None, has_records=d in has, grace=self.settings["grace_min"])
                 out.append({"date": d.isoformat(), "status": v["status"],
+                            "dose_time": self.settings["dose_time"] if d == now.date() else self.dose_on(d),
                             "at": None if v["at"] is None else f"{v['at'] // 60:02d}:{v['at'] % 60:02d}",
                             "events": self._events(d)})
             return out

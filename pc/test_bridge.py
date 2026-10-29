@@ -100,6 +100,50 @@ class AppTest(unittest.TestCase):
         self.assertIn("REMIND 0", self.sent)
 
 
+class ReviewFixTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.clock = Clock(datetime(2026, 10, 27, 8, 5))
+        self.sent = []
+        self.app = App(Path(self.tmp.name), lambda c: self.sent.append(c) or len(self.sent), self.clock)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_nothing_sent_while_link_down(self):
+        self.app.on_message({"type": "link", "state": "down", "reason": "missing"})
+        self.app.tick()
+        self.assertEqual(self.sent, [])
+
+    def test_dose_change_keeps_past_days(self):
+        self.app.on_message({"type": "link", "state": "up"})
+        for day in (27, 28):
+            self.clock.at(8, 5, day=day)
+            self.app.on_message({"v": 1, "type": "event", "event": "press"})
+        self.clock.at(12, 0, day=29)
+        self.app.set_dose("20:00")
+        past = {d["date"]: d["status"] for d in self.app.history(3)}
+        self.assertEqual(past["2026-10-27"], "done")
+        self.assertEqual(past["2026-10-28"], "done")
+        self.assertEqual(self.app.history(1)[0]["dose_time"], "20:00")
+
+    def test_board_state_mismatch_triggers_resend(self):
+        self.app.on_message({"type": "link", "state": "up"})
+        self.clock.at(8, 12)
+        self.app.on_message({"v": 1, "type": "event", "event": "press"})
+        self.app.tick()
+        self.sent.clear()
+        self.app.on_message({"v": 1, "type": "state", "remind": 0, "done": 0, "msg": 0})  # DONE 1이 유실됨
+        self.app.tick()
+        self.assertIn("DONE 1", self.sent)
+
+    def test_record_without_event_does_not_crash(self):
+        (Path(self.tmp.name) / "records.jsonl").write_text('{"t":"2026-10-27T08:00:00"}\n{"t":"2026-10-27T08:00:00+09:00","e":"press"}\n', encoding="utf-8")
+        app = App(Path(self.tmp.name), lambda c: 0, self.clock)
+        app.tick()
+        self.assertEqual(app.state()["status"], "unknown")
+
+
 class ApiTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

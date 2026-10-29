@@ -25,6 +25,8 @@ def load(path: Path, now, keep_days=90):
         try:
             r = json.loads(line)
             r["_dt"] = datetime.fromisoformat(r["t"])
+            if not isinstance(r.get("e"), str) or r["_dt"].tzinfo is not None:
+                raise ValueError("e 없음 또는 시간대 포함")
         except (ValueError, KeyError, TypeError):
             print(f"경고: {path.name} {n}번째 줄이 깨져 건너뜁니다", file=sys.stderr)
             continue

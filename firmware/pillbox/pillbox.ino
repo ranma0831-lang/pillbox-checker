@@ -141,7 +141,8 @@ void loop() {
   unsigned long now = millis();
   readSerial();
   readInputs(now);
-  if (!pcLost && now - lastCmd > PC_TIMEOUT) { pcLost = true; showMsg(3); }
+  // readSerial 안에서 lastCmd가 now보다 커질 수 있으므로 millis()를 다시 읽는다
+  if (!pcLost && millis() - lastCmd > PC_TIMEOUT) { pcLost = true; showMsg(3); }
   updateOutputs(now);
   if (now - lastState >= 1000) { lastState = now; sendState(0); }
 }
