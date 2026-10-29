@@ -51,6 +51,12 @@ class SerialLinkTest(unittest.TestCase):
         self.assertEqual(self.link.poll_timeouts(), [])
         self.assertEqual(self.link.unconfirmed, 1)
 
+    def test_status_reply_counts_as_response(self):
+        n = self.link.send("STATUS")
+        self.link.handle(b'{"v":1,"type":"state","profile":"PILL","request":%d}' % n)
+        self.clock.t += 2.1
+        self.assertEqual(self.link.poll_timeouts(), [])
+
     def test_no_pending_when_port_missing(self):
         self.link.port = None
         self.link.send("PING")

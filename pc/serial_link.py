@@ -59,7 +59,7 @@ class Link:
                 self.bad_lines += 1
             return
         self.last_rx = self.clock()
-        if msg["type"] in ("ack", "error"):
+        if msg["type"] in ("ack", "error") or msg.get("request"):  # STATUS 응답은 요청번호가 붙은 state로 옴
             with self._lock:
                 self._pending.pop(msg.get("request"), None)
         self.on_message(msg)
