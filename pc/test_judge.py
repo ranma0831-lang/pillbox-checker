@@ -35,8 +35,12 @@ class JudgeTest(unittest.TestCase):
 
     def test_outputs(self):
         self.assertEqual(outputs("done"), {"REMIND": 0, "DONE": 1, "WINDOW": 1, "MSG": 2})
-        self.assertEqual(outputs("caution"), {"REMIND": 1, "DONE": 0, "WINDOW": 1, "MSG": 1})
+        self.assertEqual(outputs("caution"), {"REMIND": 1, "DONE": 0, "WINDOW": 1, "MSG": 4})
         self.assertEqual(outputs("before"), {"REMIND": 0, "DONE": 0, "WINDOW": 0, "MSG": 0})
+
+    def test_red_led_starts_three_minutes_after_dose(self):
+        self.assertEqual(outputs("due", 482, 480), {"REMIND": 0, "DONE": 0, "WINDOW": 1, "MSG": 1})
+        self.assertEqual(outputs("due", 483, 480), {"REMIND": 1, "DONE": 0, "WINDOW": 1, "MSG": 4})
 
     def test_parse_hhmm(self):
         self.assertEqual(parse_hhmm("08:00"), 480)

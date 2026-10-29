@@ -96,7 +96,10 @@ class App:
             now = self.clock()
             v = self._today(now)
             if v["status"] != "unknown":  # 보드와 끊긴 동안은 출력 명령을 보내지 않음
-                want = outputs(v["status"])
+                dose = self.dose
+                want = {**outputs(v["status"], _minute(now), dose),
+                        "DOSE": f"{dose // 60:02d}{dose % 60:02d}",  # LCD에 보여 줄 복용·확인 시각 (보드엔 시계가 없음)
+                        "TAKEN": "-1" if v["at"] is None else f"{v['at'] // 60:02d}{v['at'] % 60:02d}"}
                 for k, val in want.items():
                     if self._sent_out is None or self._sent_out.get(k) != val:
                         self.send(f"{k} {val}")

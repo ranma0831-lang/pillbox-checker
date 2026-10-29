@@ -43,6 +43,28 @@ class AppTest(unittest.TestCase):
         self.assertIn("DONE 1", self.sent)
         self.assertIn("MSG 2", self.sent)
 
+    def test_sends_dose_and_taken_times(self):
+        self.clock.at(7, 0)
+        self.alive()
+        self.app.tick()
+        self.assertIn("DOSE 0800", self.sent)
+        self.assertIn("TAKEN -1", self.sent)
+        self.clock.at(8, 12)
+        self.app.on_message({"v": 1, "type": "event", "event": "press"})
+        self.app.tick()
+        self.assertIn("TAKEN 0812", self.sent)
+
+    def test_red_led_waits_three_minutes(self):
+        self.clock.at(8, 2, 59)
+        self.alive()
+        self.app.tick()
+        self.assertNotIn("REMIND 1", self.sent)
+        self.clock.at(8, 3)
+        self.alive()
+        self.app.tick()
+        self.assertIn("REMIND 1", self.sent)
+        self.assertIn("MSG 4", self.sent)
+
     def test_early_press_recorded_not_counted(self):
         self.clock.at(5, 41)
         self.app.on_message({"v": 1, "type": "event", "event": "press"})

@@ -3,10 +3,11 @@ import re
 
 WINDOW_BEFORE = 120  # 복용 시각 2시간 전부터 확인 인정
 WARN_AFTER = 60
+REMIND_AFTER = 3  # 상자 빨강 LED는 복용 시각 3분 뒤부터 깜빡임
 
-_OUT = {  # REMIND, DONE, WINDOW, MSG
+_OUT = {  # REMIND, DONE, WINDOW, MSG (LCD: 0 다음 복용, 1 복용 시간, 2 완료, 3 PC 끊김, 4 지남)
     "before": (0, 0, 0, 0), "window": (0, 0, 1, 0), "due": (0, 0, 1, 1),
-    "caution": (1, 0, 1, 1), "warning": (1, 0, 1, 1),
+    "caution": (1, 0, 1, 4), "warning": (1, 0, 1, 4),
     "done": (0, 1, 1, 2), "late": (0, 1, 1, 2),
 }
 
@@ -42,5 +43,8 @@ def judge(presses, dose, now, *, has_records=True, stale=False, grace=30):
     return {"status": st, "at": None, "early": early}
 
 
-def outputs(status):
-    return dict(zip(("REMIND", "DONE", "WINDOW", "MSG"), _OUT.get(status, (0, 0, 0, 0))))
+def outputs(status, now=None, dose=None):
+    out = _OUT.get(status, (0, 0, 0, 0))
+    if status == "due" and now is not None and dose is not None and now >= dose + REMIND_AFTER:
+        out = (1, 0, 1, 4)
+    return dict(zip(("REMIND", "DONE", "WINDOW", "MSG"), out))
