@@ -3,3 +3,4 @@ __pycache__/
 pc/records.jsonl
 pc/settings.json
 .superpowers/
+pc/demo-data/
